@@ -12,7 +12,9 @@ Please make sure to double-check the connections and ensure that they match the 
 
 
 	1	Install the required Python modules. You can do this with the following command:
+ 
 pip3 install board busio digitalio adafruit_ds18b20 time datetime ephem requests
+
 	2	Create a file named main.py and paste the code from the question.
 	3	Connect the DS18B20 sensors and relays to your Raspberry Pi. The pinout for the sensors and relays is specified in the main.py file.
 	4	Run the code with the following command:
