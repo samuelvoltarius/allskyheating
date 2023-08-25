@@ -39,46 +39,85 @@ Key features of the code:
 
 
  Create a systemd Service:
+ 
 Open a terminal and create a new systemd service unit file for your script:
+
 bash
+
 Copy code
+
 sudo nano /etc/systemd/system/your-script.service
+
 Replace your-script with a suitable name for your service.
+
 Add the Service Configuration:
+
 Add the following content to the your-script.service file:
+
 plaintext
+
 Copy code
+
 [Unit]
+
 Description=Your Python Script Autostart
+
 After=multi-user.target
 
+
+
 [Service]
+
 ExecStart=/usr/bin/python3 /path/to/your/main.py
+
 WorkingDirectory=/path/to/your/script/directory
+
 StandardOutput=inherit
+
 StandardError=inherit
+
 Restart=always
+
 User=pi  # Change this to your username if not using "pi"
 
 [Install]
+
 WantedBy=multi-user.target
+
 Make sure to replace /path/to/your/main.py and /path/to/your/script/directory with the actual paths.
+
 Enable the Service:
+
 Enable the systemd service you just created:
+
 bash
+
 Copy code
+
 sudo systemctl enable your-script.service
+
 Start the Service:
+
 Start the service to ensure it's working:
+
 bash
+
 Copy code
+
 sudo systemctl start your-script.service
+
 Reboot and Test:
+
 Reboot your Raspberry Pi:
+
 bash
+
 Copy code
+
 sudo reboot
+
 Your Python script should now start automatically after the reboot. You can check the status of the service with:
+
 bash
 Copy code
 sudo systemctl status your-script.service
