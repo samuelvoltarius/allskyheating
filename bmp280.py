@@ -91,3 +91,76 @@ def write_status_html(relay1_status, relay2_status, temp1, temp2, bmp_temperatur
         </body>
         </html>
         """)
+        
+def is_snowing(weather_data):
+    weather_conditions = weather_data.get("weather", [])
+    for condition in weather_conditions:
+        if condition.get("main") == "Snow":
+            return True
+    return False
+
+def convert_to_datetime(time_string):
+    return datetime.datetime.strptime(time_string, '%H:%M:%S')
+
+def main_loop():
+    prev_relay1 = prev_relay2 = None
+
+    while True:
+        try:
+            temp1, temp2 = ds18.temperature, ds18.temperature
+            bmp_temperature = bmp280.temperature
+            bmp_pressure = bmp280.pressure
+            bmp_humidity = bmp280.relative_humidity
+            sensor_missing = False
+        except Exception as e:
+            temp1 = temp2 = bmp_temperature = bmp_pressure = bmp_humidity = -999
+            sensor_missing = str(e)
+
+        sunrise, sunset = calculate_sun_times()
+        sunrise_dt = convert_to_datetime(sunrise)
+        sunset_dt = convert_to_datetime(sunset)
+
+        current_datetime = datetime.datetime.now()  # Current datetime.datetime object
+        current_time = current_datetime.time()  # Extract current time
+        weather_data = get_weather()
+        snow_status = is_snowing(weather_data)
+        forecast_temp = weather_data.get("main", {}).get("temp", 0)  # Avoid KeyError
+
+        if snow_status:
+            relay1.value = True
+            relay2.value = True
+        else:
+            temp_difference = abs(temp1 - temp2)
+
+            if sunrise_dt <= current_datetime <= sunrise_dt + datetime.timedelta(hours=1) or sunset_dt <= current_datetime <= sunset_dt + datetime.timedelta(hours=1):
+                if temp_difference >= 15:
+                    relay1.value = True
+                    relay2.value = True
+                elif temp_difference >= 10:
+                    relay1.value = False
+                    relay2.value = True
+                elif temp_difference >= 5:
+                    relay1.value = True
+                    relay2.value = False
+                else:
+                    relay1.value = False
+                    relay2.value = False
+            else:
+                relay1.value = relay2.value = False
+
+        # Handle relay control via form here
+
+        if relay1.value != prev_relay1 or relay2.value != prev_relay2:
+            sensor_info = f"Sensor 1: {temp1:.2f} °C, Sensor 2: {temp2:.2f} °C, BMP280 Temp: {bmp_temperature:.2f} °C, BMP280 Pressure: {bmp_pressure:.2f} hPa, BMP280 Humidity: {bmp_humidity:.2f} %" if not sensor_missing else f"Sensor missing: {sensor_missing}"
+            write_status_html(
+                relay1.value, relay2.value, temp1, temp2, bmp_temperature, bmp_pressure, bmp_humidity, sunrise, sunset,
+                "Yes" if snow_status else "No", forecast_temp, sensor_info
+            )
+            prev_relay1, prev_relay2 = relay1.value, relay2.value
+        
+        # Delay for 5 minutes (300 seconds)
+        time.sleep(300)
+
+# Run the main loop when the script is executed
+if __name__ == "__main__":
+    main_loop()
