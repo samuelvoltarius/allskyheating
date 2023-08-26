@@ -1,7 +1,7 @@
 import board
-import busio
+from adafruit_onewire.bus import OneWireBus
+from adafruit_ds18x20 import DS18X20
 import digitalio
-import adafruit_ds18b20
 import time
 import datetime
 import ephem
@@ -17,16 +17,37 @@ relay1.direction = digitalio.Direction.OUTPUT
 relay2 = digitalio.DigitalInOut(board.D27)
 relay2.direction = digitalio.Direction.OUTPUT
 
-# Create a OneWire bus.
-bus = busio.OneWire(board.D2)
-
-# Create two DS18B20 temperature sensors.
-sensor1 = adafruit_ds18b20.DS18B20(bus)
-sensor2 = adafruit_ds18b20.DS18B20(bus)
+# Create a OneWire bus and DS18X20 temperature sensors.
+ow_bus = OneWireBus(board.D2)
 
 # Your OpenWeatherMap API key and city name
-API_KEY = "YOUR_API_KEY"
-CITY_NAME = "Seekirchen am Wallersee"
+API_KEY = "Your API"
+CITY_NAME = "Your City"
+
+
+def get_weather():
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY_NAME}&appid={API_KEY}"
+    response = requests.get(url)
+    weather_data = response.json()
+    return weather_data
+
+
+# Function to calculate sunrise and sunset times using ephem
+def calculate_sun_times():
+    observer = ephem.Observer()
+    # Enter the coordinates of your location here
+    observer.lat = '47.9161'  # Latitude of Seekirchen am Wallersee
+    observer.lon = '13.1462'  # Longitude of Seekirchen am Wallersee
+    
+    sun = ephem.Sun()
+    sunrise = observer.next_rising(sun)
+    sunset = observer.next_setting(sun)
+    
+    # Sunset + 0.5 hours
+    sunrise_time = ephem.localtime(sunrise).strftime('%H:%M:%S')
+    sunset_time = (ephem.localtime(sunset) + datetime.timedelta(minutes=30)).strftime('%H:%M:%S')
+    
+    return sunrise_time, sunset_time
 
 # Function to write status and sensor info to HTML
 def write_status_html(relay1_status, relay2_status, temp1, temp2, sunrise, sunset, snow, forecast, sensor_info):
@@ -60,31 +81,60 @@ def write_status_html(relay1_status, relay2_status, temp1, temp2, sunrise, sunse
         </html>
         """)
 
-# Function to run the main loop
+def is_snowing(weather_data):
+    weather_conditions = weather_data.get("weather", [])
+    for condition in weather_conditions:
+        if condition.get("main") == "Snow":
+            return True
+    return False
+
+def convert_to_datetime(time_string):
+    return datetime.datetime.strptime(time_string, '%H:%M:%S')
+
+# Funktion zum Auswerten des Haupt-Loops
 def main_loop():
     prev_relay1 = prev_relay2 = None
 
     while True:
         try:
-            temp1, temp2 = sensor1.temperature, sensor2.temperature
+            temp1, temp2 = ds18.temperature, ds18.temperature
             sensor_missing = False
         except Exception as e:
             temp1 = temp2 = -999
             sensor_missing = str(e)
 
         sunrise, sunset = calculate_sun_times()
+        sunrise_dt = convert_to_datetime(sunrise)
+        sunset_dt = convert_to_datetime(sunset)
 
-        current_time = datetime.datetime.now().time()
+        current_datetime = datetime.datetime.now()  # Aktuelles datetime.datetime-Objekt
+        current_time = current_datetime.time()  # Aktuelle Zeit extrahieren
+        weather_data = get_weather()
+        print(weather_data)  # Ausgabe der Wetterdaten zur Überprüfung
+        snow_status = is_snowing(weather_data)
+        forecast_temp = weather_data.get("main", {}).get("temp", 0)  # Vermeidung von KeyError
 
-        if datetime.datetime.strptime(sunset, '%H:%M:%S') <= current_time <= datetime.datetime.strptime(sunrise, '%H:%M:%S') + datetime.timedelta(hours=1):
-            weather_data = get_weather()
-            snow_status = is_snowing(weather_data)
-            forecast_temp = weather_data["main"]["temp"]
-
-            relay1.value = relay2.value = snow_status or (temp1 - temp2 >= 15) or (temp1 - temp2 >= 10)
-
+        if snow_status:
+            relay1.value = True
+            relay2.value = True
         else:
-            relay1.value = relay2.value = False
+            temp_difference = abs(temp1 - temp2)
+
+            if sunrise_dt <= current_datetime <= sunrise_dt + datetime.timedelta(hours=1) or sunset_dt <= current_datetime <= sunset_dt + datetime.timedelta(hours=1):
+                if temp_difference >= 15:
+                   relay1.value = True
+                   relay2.value = True
+                elif temp_difference >= 10:
+                   relay1.value = False
+                   relay2.value = True
+                elif temp_difference >= 5:
+                   relay1.value = True
+                   relay2.value = False
+                else:
+                   relay1.value = False
+                   relay2.value = False
+            else:
+                relay1.value = relay2.value = False
 
         # Handle relay control via form here
 
@@ -95,8 +145,8 @@ def main_loop():
                 "Yes" if snow_status else "No", forecast_temp, sensor_info
             )
             prev_relay1, prev_relay2 = relay1.value, relay2.value
-
-        time.sleep(1)
+#Time for Loop
+        time.sleep(300)
 
 # Run the main loop when the script is executed
 if __name__ == "__main__":
