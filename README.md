@@ -1,4 +1,5 @@
 AllSkyHeating
+
 This repository contains a Python script that controls relays based on temperature, time of day, and weather conditions. It calculates sunrise and sunset times using the ephem library and displays relay status, temperatures, sunrise, sunset, and snowfall in an HTML file. The HTML page also allows manual relay control.
 
 Requirements
