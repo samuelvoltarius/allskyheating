@@ -21,10 +21,17 @@ Installation
 
 Install the required Python modules:
 
-1. pip3 install board busio digitalio adafruit_ds18b20 time datetime ephem requests
-2. Create a file named `main.py` and paste the code from this repository.
-3. Connect the DS18B20 sensors and relays to your Raspberry Pi based on the specified pinout.
-4. Run the code using the command:
+1. pip3 install adafruit-circuitpython-ds18x20 
+
+pip3 install adafruit-blinka
+
+pip3 install ephem
+
+pip3 install requests
+
+3. Create a file named `main.py` and paste the code from this repository.
+4. Connect the DS18B20 sensors and relays to your Raspberry Pi based on the specified pinout.
+5. Run the code using the command:
 
 python3 main.py
 
