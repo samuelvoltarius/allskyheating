@@ -24,7 +24,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(i2c)
 
 # Create a OneWire bus and DS18X20 temperature sensors.
-ow_bus = OneWireBus(board.D2)
+ow_bus = OneWireBus(board.D4)
 ds18 = DS18X20(ow_bus, ow_bus.scan()[0])
 
 # Your OpenWeatherMap API key and city name
