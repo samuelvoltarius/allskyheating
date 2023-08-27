@@ -18,7 +18,8 @@ relay2 = digitalio.DigitalInOut(board.D27)
 relay2.direction = digitalio.Direction.OUTPUT
 
 # Create a OneWire bus and DS18X20 temperature sensors.
-ow_bus = OneWireBus(board.D2)
+ow_bus = OneWireBus(board.D4) 
+
 
 # Your OpenWeatherMap API key and city name
 API_KEY = "Your API"
